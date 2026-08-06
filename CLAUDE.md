@@ -20,7 +20,7 @@ An agent that reads a screenplay and produces a cited legal/rights clearance ris
 
 Three-stage pipeline, orchestrated as **plain `async` Python**, not nested ADK agent composition:
 
-1. `backend/agents/extractor.py` — `extractor_agent` (`LlmAgent`, Gemini 2.5 Flash) reads the raw script text/PDF and emits `EntityList` (wraps `list[Entity]` — ADK's `output_schema` needs a single `BaseModel`, not a bare generic).
+1. `backend/agents/extractor.py` — `extractor_agent` (`LlmAgent`, Gemini 3.1 Flash Lite) reads the raw script text/PDF and emits `EntityList` (wraps `list[Entity]` — ADK's `output_schema` needs a single `BaseModel`, not a bare generic).
 2. `backend/agents/researcher.py` — `assess_entity(entity)` runs a **fresh `Runner`/session per entity**, calling `research_entity_web` (Parallel Search, wrapped as an ADK tool in `tools.py`) and emitting a `RiskAssessment`. Fan-out across entities happens in `pipeline.py` via `asyncio.gather` + `asyncio.Semaphore(5)` — **not** a custom `BaseAgent`/`Event`-yielding node. We looked at that pattern (it needs `agent.clone()` + per-branch `InvocationContext`s + manually yielding `Event`s to get state persisted) and it buys nothing here since each entity's research is fully independent — running N separate `Runner.run_async()` calls concurrently does the identical thing with far less code.
 3. `backend/agents/synthesizer.py` — one call over all assessments → `ReportSummary` (overall tier + executive summary).
 
@@ -36,6 +36,8 @@ The installed `google-adk` is **2.6.2**, notably newer than what most public ADK
 - `output_schema` does *not* require disabling tools or transfer callbacks (older docs said otherwise) — tools and structured output work together fine.
 - The real `parallel-web` SDK call is `client.search(*, objective, search_queries, mode="turbo"|"basic"|"advanced", max_chars_total, ...)`, returning `SearchResult.results: list[WebSearchResult(url, title, excerpts: list[str], publish_date)]`. There's no `beta.search`, no `processor=`, no per-result `max_results` param — the plan doc's original sketch had this wrong; `tools.py` has the verified real signature.
 - Passing a plain `async def` function in `LlmAgent(tools=[...])` still auto-wraps it as a `FunctionTool` — no manual wrapping needed.
+- `gemini-2.5-flash` 404s for new API keys ("no longer available to new users") even though it still appears in `client.models.list()`. The three `LlmAgent`s pin `gemini-3.1-flash-lite` — chosen deliberately as the cheapest/lowest-tier current Gemini model to minimize cost, not just because it was the first one that worked. If this breaks again, list live models with `client.models.list()` and re-verify candidates with a real `generate_content` call (list membership isn't sufficient, since deprecated-for-new-keys models still show up there).
+- Free-tier quota on this key is *per-model* and mostly *per-day*, not just per-minute: `gemini-3.6-flash` capped at 20 requests/day, `gemini-2.0-flash` and `gemini-2.0-flash-lite` are capped at 0 (effectively retired for free-tier keys), and `gemini-3.1-flash-lite`/`gemini-flash-lite-latest` were the only candidates with real headroom. Check `RESOURCE_EXHAUSTED` error bodies for `quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier` vs `PerMinute` before assuming a concurrency fix will help — a per-day cap won't budge no matter how much you throttle `MAX_CONCURRENT_RESEARCH`.
 
 ### Citation-grounding control (do not remove)
 
@@ -43,17 +45,14 @@ The installed `google-adk` is **2.6.2**, notably newer than what most public ADK
 
 ## Status / what's left
 
-Done: repo scaffold, schemas, full agent pipeline (extractor → fan-out researcher → synthesizer), `samples/sample_script.txt` test fixture.
-
-**Not yet run end-to-end** — needs `GOOGLE_API_KEY` (aistudio.google.com/apikey) and `PARALLEL_API_KEY` (platform.parallel.ai) in a local `.env` (gitignored, copy from `.env.example`).
+Done: repo scaffold, schemas, full agent pipeline (extractor → fan-out researcher → synthesizer), `samples/sample_script.txt` test fixture. **Ran end-to-end successfully** on 2026-08-06 — `python -m backend.agents.pipeline samples/sample_script.txt` extracted all 6 sample entities, researched each via real Parallel Search calls, and synthesized a grounded medium-risk report.
 
 Remaining build order (see [docs/PLAN.md](docs/PLAN.md) for full detail):
-1. Smoke-test `python -m backend.agents.pipeline samples/sample_script.txt` end-to-end.
-2. Wrap in FastAPI: `POST /api/analyze`, `GET /api/reports/{id}`, Firestore persistence (`backend/storage.py` — one `reports` collection, denormalized doc per report).
-3. SSE live-progress streaming (`backend/progress.py`, in-memory `asyncio.Queue` per job).
-4. Jinja2 + HTMX + Tailwind frontend: `/` upload, `/reports/{id}/processing`, `/reports/{id}`.
-5. Dockerize (Dockerfile already scaffolded), deploy to Cloud Run, wire Secret Manager for both API keys.
-6. Polish: README run instructions, sample scripts for judges, error/empty states.
+1. Wrap in FastAPI: `POST /api/analyze`, `GET /api/reports/{id}`, Firestore persistence (`backend/storage.py` — one `reports` collection, denormalized doc per report).
+2. SSE live-progress streaming (`backend/progress.py`, in-memory `asyncio.Queue` per job).
+3. Jinja2 + HTMX + Tailwind frontend: `/` upload, `/reports/{id}/processing`, `/reports/{id}`.
+4. Dockerize (Dockerfile already scaffolded), deploy to Cloud Run, wire Secret Manager for both API keys.
+5. Polish: README run instructions, sample scripts for judges, error/empty states.
 
 ## Running locally
 

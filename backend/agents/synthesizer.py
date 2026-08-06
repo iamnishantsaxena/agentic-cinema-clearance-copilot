@@ -3,6 +3,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
+import backend.config  # noqa: F401  ensures .env is loaded regardless of entrypoint
 from backend.schemas import ReportSummary, RiskAssessment
 
 SYNTHESIZER_INSTRUCTION = """\
@@ -22,7 +23,7 @@ Produce:
 
 synthesizer_agent = LlmAgent(
     name="synthesizer",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     instruction=SYNTHESIZER_INSTRUCTION,
     output_schema=ReportSummary,
     output_key="summary",

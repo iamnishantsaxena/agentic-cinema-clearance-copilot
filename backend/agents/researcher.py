@@ -34,7 +34,7 @@ Then produce a RiskAssessment:
 def build_researcher_agent(seen_urls: set[str]) -> LlmAgent:
     return LlmAgent(
         name="researcher_assessor",
-        model="gemini-2.5-flash",
+        model="gemini-3.1-flash-lite",
         instruction=RESEARCHER_INSTRUCTION,
         tools=[make_research_tool(seen_urls)],
         output_schema=RiskAssessment,

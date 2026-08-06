@@ -3,6 +3,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
+import backend.config  # noqa: F401  ensures .env is loaded regardless of entrypoint
 from backend.schemas import EntityList
 
 EXTRACTOR_INSTRUCTION = """\
@@ -35,7 +36,7 @@ Do not invent entities that aren't actually present in the text.
 
 extractor_agent = LlmAgent(
     name="extractor",
-    model="gemini-2.5-flash",
+    model="gemini-3.1-flash-lite",
     instruction=EXTRACTOR_INSTRUCTION,
     output_schema=EntityList,
     output_key="entities",
