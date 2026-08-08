@@ -9,8 +9,14 @@ from backend.schemas import Report
 MAX_CONCURRENT_RESEARCH = 5
 
 
-async def analyze_script(script_text: str, script_title: str) -> Report:
-    entities = (await extract_entities(script_text)).entities
+async def analyze_script(
+    script_text: str | None,
+    script_title: str,
+    *,
+    pdf_bytes: bytes | None = None,
+    report_id: str | None = None,
+) -> Report:
+    entities = (await extract_entities(script_text, pdf_bytes=pdf_bytes)).entities
 
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_RESEARCH)
 
@@ -23,7 +29,7 @@ async def analyze_script(script_text: str, script_title: str) -> Report:
     summary = await synthesize_report(list(assessments))
 
     return Report(
-        report_id=str(uuid.uuid4()),
+        report_id=report_id or str(uuid.uuid4()),
         script_title=script_title,
         overall_risk_tier=summary.overall_risk_tier,
         executive_summary=summary.executive_summary,

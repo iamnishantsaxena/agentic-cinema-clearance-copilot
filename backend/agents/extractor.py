@@ -43,12 +43,17 @@ extractor_agent = LlmAgent(
 )
 
 
-async def extract_entities(script_text: str) -> EntityList:
+async def extract_entities(script_text: str | None = None, *, pdf_bytes: bytes | None = None) -> EntityList:
     session_service = InMemorySessionService()
     runner = Runner(app_name="clearance-copilot", agent=extractor_agent, session_service=session_service)
     session = await session_service.create_session(app_name="clearance-copilot", user_id="pipeline")
 
-    message = types.Content(role="user", parts=[types.Part(text=script_text)])
+    part = (
+        types.Part.from_bytes(data=pdf_bytes, mime_type="application/pdf")
+        if pdf_bytes is not None
+        else types.Part(text=script_text)
+    )
+    message = types.Content(role="user", parts=[part])
     async for event in runner.run_async(user_id="pipeline", session_id=session.id, new_message=message):
         pass
 
