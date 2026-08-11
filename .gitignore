@@ -6,3 +6,4 @@ venv/
 *.egg-info/
 .pytest_cache/
 .DS_Store
+.claude/settings.json
