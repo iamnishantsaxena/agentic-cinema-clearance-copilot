@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Clearance Copilot{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"Courier Prime"', 'ui-monospace', 'monospace'],
+            sans: ['"Public Sans"', 'ui-sans-serif', 'sans-serif'],
+          },
+          colors: {
+            paper: '#F6F4EE',
+            sheet: '#FFFDF8',
+            ink: '#201E1A',
+            'ink-muted': '#6E6C64',
+            rule: '#DAD7CB',
+            tier: {
+              low: { stock: '#E4EBF5', ink: '#2B4C7E', edge: '#A9C0DE' },
+              medium: { stock: '#F7E6EC', ink: '#8A3355', edge: '#E3AFC3' },
+              high: { stock: '#F7EDD2', ink: '#7A5A12', edge: '#DCC077' },
+              critical: { stock: '#F5DEDA', ink: '#8C2A22', edge: '#DE9C93' },
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    ::selection { background: #201E1A; color: #F6F4EE; }
+    :focus-visible { outline: 2px solid #201E1A; outline-offset: 2px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-paper text-ink font-sans min-h-screen flex flex-col">
+  <header class="border-b border-rule">
+    <div class="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
+      <a href="/" class="font-mono font-bold text-sm tracking-[0.15em]">CLEARANCE COPILOT</a>
+      <span class="font-mono text-xs text-ink-muted tracking-wide">NOT LEGAL ADVICE</span>
+    </div>
+  </header>
+  <main class="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="border-t border-rule">
+    <div class="max-w-3xl mx-auto px-6 py-4 font-mono text-[11px] text-ink-muted tracking-wide">
+      FIRST-PASS AUTOMATED READ — HAS AN ATTORNEY REVIEW BEFORE YOU RELY ON THIS.
+    </div>
+  </footer>
+</body>
+</html>

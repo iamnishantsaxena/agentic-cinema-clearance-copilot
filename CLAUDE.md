@@ -45,14 +45,13 @@ The installed `google-adk` is **2.6.2**, notably newer than what most public ADK
 
 ## Status / what's left
 
-Done: repo scaffold, schemas, full agent pipeline (extractor → fan-out researcher → synthesizer), `samples/sample_script.txt` test fixture. **Ran end-to-end successfully** on 2026-08-06 — `python -m backend.agents.pipeline samples/sample_script.txt` extracted all 6 sample entities, researched each via real Parallel Search calls, and synthesized a grounded medium-risk report.
+Done: repo scaffold, schemas, full agent pipeline (extractor → fan-out researcher → synthesizer), `samples/sample_script.txt` test fixture, FastAPI wrapper (`POST /api/analyze`, `GET /api/reports/{id}`, Firestore persistence via `backend/storage.py`), SSE live-progress (`backend/progress.py` + `GET /api/reports/{id}/stream`), and the full Jinja2 + Tailwind frontend (`/`, `/reports/{id}/processing`, `/reports/{id}` — screenplay/coverage-report visual identity, see `backend/templates/`). Verified end-to-end multiple times against real Parallel Search + real Firestore (project `sigma-sunlight-379504`, ADC via `gcloud auth application-default login`).
+
+**Cloud Run deploy blocked, not yet attempted for real**: `sigma-sunlight-379504` (the project with full local access and the working Firestore data) has billing disabled, and both billing accounts on this Google account (`nishantksaxena29@gmail.com`) are closed. The other available project, `dashboardworx`, has billing enabled but this account only has `roles/viewer` there — not enough to enable APIs or deploy. Deployment needs one of: (a) reactivate/add a billing account and link it to `sigma-sunlight-379504`, or (b) get Editor/Owner on `dashboardworx`. Dockerfile is already written and untested against a real build.
 
 Remaining build order (see [docs/PLAN.md](docs/PLAN.md) for full detail):
-1. Wrap in FastAPI: `POST /api/analyze`, `GET /api/reports/{id}`, Firestore persistence (`backend/storage.py` — one `reports` collection, denormalized doc per report).
-2. SSE live-progress streaming (`backend/progress.py`, in-memory `asyncio.Queue` per job).
-3. Jinja2 + HTMX + Tailwind frontend: `/` upload, `/reports/{id}/processing`, `/reports/{id}`.
-4. Dockerize (Dockerfile already scaffolded), deploy to Cloud Run, wire Secret Manager for both API keys.
-5. Polish: README run instructions, sample scripts for judges, error/empty states.
+1. Resolve the billing/permissions blocker above, then: Dockerize (build/test the existing `Dockerfile` locally), deploy to Cloud Run, wire Secret Manager for `GOOGLE_API_KEY`/`PARALLEL_API_KEY` (never as plain env vars).
+2. Polish: README run instructions, sample scripts for judges, error/empty states.
 
 ## Running locally
 

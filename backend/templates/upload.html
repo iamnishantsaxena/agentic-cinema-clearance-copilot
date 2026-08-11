@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  @keyframes caret-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  .caret { animation: caret-blink 1s step-end infinite; }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto text-center py-8">
+  <p class="font-mono text-xs tracking-[0.3em] text-ink-muted mb-6">
+    FADE IN:<span class="caret">_</span>
+  </p>
+
+  <h1 class="font-mono font-bold text-3xl sm:text-4xl leading-tight mb-6">
+    A SCRIPT<br>CLEARANCE READ
+  </h1>
+
+  <p class="text-ink-muted leading-relaxed mb-10 max-w-sm mx-auto">
+    Upload a screenplay. We'll flag every real person, brand, song, quote, and
+    "true events" claim that needs a lawyer's eyes before you shoot — backed
+    by live research, not a guess.
+  </p>
+
+  <form id="upload-form" class="text-left">
+    <label for="file-input"
+           id="dropzone"
+           class="block border-2 border-dashed border-rule rounded-sm px-6 py-10 text-center cursor-pointer transition-colors hover:border-ink hover:bg-sheet">
+      <span id="dropzone-label" class="font-mono text-sm text-ink-muted">
+        DROP .TXT OR .PDF — OR CLICK TO BROWSE
+      </span>
+      <input id="file-input" type="file" name="file" accept=".txt,.pdf,text/plain,application/pdf" required class="sr-only">
+    </label>
+
+    <button type="submit"
+            class="mt-6 w-full bg-ink text-paper font-mono text-sm tracking-[0.15em] py-3.5 rounded-sm hover:bg-ink/90 transition-colors">
+      ANALYZE SCRIPT
+    </button>
+    <p id="upload-error" class="text-tier-critical-ink text-sm mt-3 hidden"></p>
+  </form>
+</div>
+<script>
+  const form = document.getElementById('upload-form');
+  const fileInput = document.getElementById('file-input');
+  const dropzoneLabel = document.getElementById('dropzone-label');
+  const errorEl = document.getElementById('upload-error');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) dropzoneLabel.textContent = fileInput.files[0].name.toUpperCase();
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.classList.add('hidden');
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    btn.textContent = 'UPLOADING...';
+    try {
+      const res = await fetch('/api/analyze', { method: 'POST', body: new FormData(form) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Upload failed (${res.status})`);
+      }
+      const { report_id } = await res.json();
+      location.href = `/reports/${report_id}/processing`;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'ANALYZE SCRIPT';
+    }
+  });
+</script>
+{% endblock %}

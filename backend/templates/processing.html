@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+  @keyframes line-in {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .log-line { animation: line-in 0.25s ease-out; }
+  @keyframes caret-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  .caret { animation: caret-blink 1s step-end infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .log-line { animation: none; }
+    .caret { animation: none; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<p class="font-mono text-xs tracking-[0.3em] text-ink-muted mb-3">READING YOUR SCRIPT<span class="caret">_</span></p>
+<h1 class="font-mono font-bold text-2xl mb-8">Building the clearance file...</h1>
+
+<div class="bg-sheet border border-rule rounded-sm p-6">
+  <ul id="log" class="font-mono text-sm leading-loose"></ul>
+  <span id="tail-caret" class="caret font-mono text-sm">_</span>
+</div>
+
+<script>
+  const log = document.getElementById('log');
+  const tailCaret = document.getElementById('tail-caret');
+  const reportId = {{ report_id | tojson }};
+  const es = new EventSource(`/api/reports/${reportId}/stream`);
+
+  es.onmessage = (e) => {
+    const li = document.createElement('li');
+    li.textContent = '> ' + e.data;
+    li.className = 'log-line';
+    if (e.data.startsWith('Error:')) li.classList.add('text-tier-critical-ink', 'font-bold');
+    else li.classList.add('text-ink');
+    log.appendChild(li);
+
+    if (e.data === 'Report complete') {
+      es.close();
+      location.href = `/reports/${reportId}`;
+    } else if (e.data.startsWith('Error:')) {
+      es.close();
+      tailCaret.remove();
+    }
+  };
+  es.onerror = () => es.close();
+</script>
+{% endblock %}
