@@ -7,6 +7,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Stre
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from google.genai.errors import APIError
+
 from backend import progress, storage
 from backend.agents.pipeline import analyze_script
 from backend.schemas import Report
@@ -66,9 +68,14 @@ async def _run_pipeline(report_id: str, body: bytes, is_pdf: bool, script_title:
         _job_status.pop(report_id, None)
         await progress.publish(report_id, "Report complete")
     except Exception as exc:
+        print(f"[{report_id}] pipeline failed: {exc!r}")
+        if isinstance(exc, APIError) and exc.code == 429:
+            message = "The model's rate limit was hit mid-analysis. Please wait a minute and try again."
+        else:
+            message = "Analysis failed unexpectedly. Please try again."
         _job_status[report_id] = "error"
-        _job_errors[report_id] = str(exc)
-        await progress.publish(report_id, f"Error: {exc}")
+        _job_errors[report_id] = message
+        await progress.publish(report_id, f"Error: {message}")
     finally:
         await progress.close(report_id)
 
@@ -76,6 +83,12 @@ async def _run_pipeline(report_id: str, body: bytes, is_pdf: bool, script_title:
 @app.get("/api/reports/{report_id}/stream")
 async def stream_report(report_id: str):
     async def events():
+        if await storage.get_report(report_id) is not None:
+            yield "data: Report complete\n\n"
+            return
+        if report_id not in _job_status:
+            yield "data: Error: report not found\n\n"
+            return
         queue = progress.get_queue(report_id)
         while True:
             message = await queue.get()

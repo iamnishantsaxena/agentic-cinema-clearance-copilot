@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ report.script_title }} — Clearance Copilot{% endblock %}
 {% block head %}
 <style>
   @keyframes stamp-in {
@@ -89,6 +90,9 @@
     {% endif %}
   </div>
   {% endfor %}
+  {% if not report.entity_assessments %}
+  <p class="text-ink-muted text-sm">No clearance-relevant entities were found in this script.</p>
+  {% endif %}
 </div>
 
 <div class="mt-12 text-center">

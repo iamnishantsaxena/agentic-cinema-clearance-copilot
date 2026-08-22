@@ -43,6 +43,11 @@ python -m backend.agents.extractor samples/sample_script.txt
 python -m backend.agents.pipeline samples/sample_script.txt
 ```
 
+## Sample scripts
+
+- `samples/sample_script.txt` — high-risk: real person, trademark, real location, a song, a misattributed quote, a "based on true events" claim.
+- `samples/sample_script_clean.txt` — low-risk: fully fictional names, places, and events, to show the report doesn't just flag everything.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
